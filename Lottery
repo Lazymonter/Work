@@ -1,0 +1,108 @@
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+public class LotteryTest{
+	private Map<String, Integer> awardStockMap;
+	private Map<String, Integer> awardWeightMap;
+	private Map<String, Integer> initAwardStockMap;
+	private long count;
+	private long TotalLottery;
+	public Map<String, Integer> getAwardWeightMap() {
+		return awardWeightMap;
+	}
+	public void setAwardWeightMap(Map<String, Integer> awardWeightMap) {
+		this.awardWeightMap = awardWeightMap;
+	}
+	public Map<String, Integer> getInitAwardStockMap() {
+		return initAwardStockMap;
+	}
+	public void setInitAwardStockMap(Map<String, Integer> initAwardStockMap) {
+		this.initAwardStockMap = initAwardStockMap;
+	}
+	public LotteryTest(Map<String, Integer> awardStockMap, long count, long totalLottery) {
+		super();
+		this.awardStockMap = awardStockMap;
+		this.count = count;
+		TotalLottery = totalLottery;
+	}
+	public Map<String, Integer> getAwardStockMap() {
+		return awardStockMap;
+	}
+	public void setAwardStockMap(Map<String, Integer> awardStockMap) {
+		this.awardStockMap = awardStockMap;
+	}
+	public long getCount() {
+		return count;
+	}
+	public void setCount(long count) {
+		this.count = count;
+	}
+	public long getTotalLottery() {
+		return TotalLottery;
+	}
+	public void setTotalLottery(long totalLottery) {
+		TotalLottery = totalLottery;
+	}
+	public void ResetMap()
+	{
+		this.awardStockMap = new ConcurrentHashMap<>();
+        awardStockMap.put("参与奖", 100000);
+        awardStockMap.put("四等奖", 1000);
+        awardStockMap.put("三等奖", 100);
+        awardStockMap.put("二等奖", 10);
+        awardStockMap.put("一等奖", 5);
+        awardStockMap.put("特等奖", 2);
+        this.awardWeightMap = new ConcurrentHashMap<>(awardStockMap);
+        this.initAwardStockMap = new ConcurrentHashMap<>(awardStockMap);
+	}
+	public void pump() {
+		int num = 0;
+		while(true) {
+			Map<String, Integer> dailyWinCountMap = new ConcurrentHashMap<>();
+			Map<String, Integer> awardWeightHaveStockMap = awardWeightMap.entrySet().stream().filter(e->awardStockMap.get(e.getKey())>0).collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+			int totalWeight = (int) awardWeightHaveStockMap.values().stream().collect(Collectors.summarizingInt(i->i)).getSum();
+            int randNum = new Random().nextInt(totalWeight); 
+            int prev=0;
+            String choosedAward = null;
+            for(Entry<String,Integer> e : awardWeightHaveStockMap.entrySet() ){
+                if(randNum >= prev && randNum < prev + e.getValue()){
+                    choosedAward = e.getKey(); 
+                    System.out.println(choosedAward);
+                    dailyWinCountMap.compute(choosedAward, (k,v)->v == null?1:v+1);
+                    break;
+                }
+                prev = prev + e.getValue();
+            }
+            awardStockMap.compute(choosedAward, (k,v)->v-1);
+            this.count++;
+    		if(this.count % 101117 == 0) {
+    			System.out.println("每日各奖品中奖计数: "); 
+    	        dailyWinCountMap.entrySet().stream().sorted((e1,e2)->e2.getValue()-e1.getValue()).forEach(System.out::println);
+    	        awardStockMap.forEach((k,v)->{if(v>0){
+    	            System.out.printf("奖品：%s, 总库存： %d, 剩余库存： %d%n",k,initAwardStockMap.get(k),v);
+    	        }});
+    			this.ResetMap();
+    			num++;
+    			if(num == 1)
+    			{
+    				break;
+    			}
+    			
+    		}
+    		
+        }
+		
+	}
+		
+		
+		
+	
+	public static void main(String[] args)
+	{
+		LotteryTest lt = new LotteryTest(null,0,0);
+		lt.ResetMap();
+		lt.pump();
+	}
+}
+
