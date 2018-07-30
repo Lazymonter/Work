@@ -1,0 +1,64 @@
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+public class Lottery{
+	public static void main(String[] args)
+	{
+
+	    final Map<String, Integer> awardStockMap = new ConcurrentHashMap<>(); 
+        awardStockMap.put("谢谢参与", 3000);
+        awardStockMap.put("鼓励奖", 2000);
+        awardStockMap.put("五等奖", 1500);
+        awardStockMap.put("四等奖", 1000);
+        awardStockMap.put("三等奖", 100);
+        awardStockMap.put("二等奖", 10);
+        awardStockMap.put("一等奖", 5);
+        awardStockMap.put("特等奖", 2);
+
+        final Map<String, Integer> awardWeightMap = new ConcurrentHashMap<>(awardStockMap); 
+        final Map<String, Integer> initAwardStockMap = new ConcurrentHashMap<>(awardStockMap); 
+ 
+        int drawNum = 50780; 
+        final int threshold = 15; 
+        Map<String, Integer> dailyWinCountMap = new ConcurrentHashMap<>(); 
+ 
+        for (int j = 0; j < drawNum; j++) { 
+            //确定是否中奖
+            int randNum = new Random().nextInt(100);
+            if(randNum > threshold){
+                dailyWinCountMap.compute("未中奖", (k,v)->v==null?1:v+1);
+                System.out.println("未中奖");
+                continue; 
+            }
+            
+            Map<String, Integer> awardWeightHaveStockMap = awardWeightMap.entrySet().stream().filter(e->awardStockMap.get(e.getKey())>0).collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+            if(awardWeightHaveStockMap.isEmpty()){ 
+                System.out.printf("第%d次抽奖 奖品已被抽完%n",j);
+                break;
+            }
+            int totalWeight = (int) awardWeightHaveStockMap.values().stream().collect(Collectors.summarizingInt(i->i)).getSum();
+            randNum = new Random().nextInt(totalWeight); 
+            int prev=0;
+            String choosedAward = null;
+            for(Entry<String,Integer> e : awardWeightHaveStockMap.entrySet() ){
+                if(randNum>=prev && randNum<prev+e.getValue()){
+                    choosedAward = e.getKey(); 
+                    System.out.println(choosedAward);
+                    dailyWinCountMap.compute(choosedAward, (k,v)->v==null?1:v+1);
+                    break;
+                }
+                prev = prev+e.getValue();
+            }
+           
+            awardStockMap.compute(choosedAward, (k,v)->v-1);
+        }
+        System.out.println("每日各奖品中奖计数: "); 
+        dailyWinCountMap.entrySet().stream().sorted((e1,e2)->e2.getValue()-e1.getValue()).forEach(System.out::println);
+        awardStockMap.forEach((k,v)->{if(v>0){
+            System.out.printf("奖品：%s, 总库存： %d, 剩余库存： %d%n",k,initAwardStockMap.get(k),v);
+        }});
+    }
+
+}
